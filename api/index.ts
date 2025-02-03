@@ -28,6 +28,8 @@ router.ws('/app', (ws, req) => {
             connectedClients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({ type: "draw", pixels: data.pixels }));
+                } else {
+                    connectedClients.delete(client);
                 }
             });
         }
