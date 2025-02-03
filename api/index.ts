@@ -10,17 +10,35 @@ const port = 8000;
 app.use(cors());
 
 const router = express.Router();
-
-const connectedClients: WebSocket[] = [];
+const connectedClients = new Set<WebSocket>();
+let pixels: { x: number; y: number; color: string }[] = [];
 
 router.ws('/app', (ws, req) => {
-    connectedClients.push(ws);
+    connectedClients.add(ws);
     console.log('Client connected');
 
+    ws.send(JSON.stringify({ type: "init", pixels }));
+
+    ws.on("message", (message) => {
+        const data = JSON.parse(message.toString());
+
+        if (data.type === "draw") {
+            pixels.push(...data.pixels);
+
+            connectedClients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({ type: "draw", pixels: data.pixels }));
+                }
+            });
+        }
+    });
+
     ws.on('close', () => {
+        connectedClients.delete(ws);
         console.log('Client disconnected');
     });
 });
+
 
 app.use(router);
 app.listen(port, () => {
